@@ -1,0 +1,187 @@
+---
+title: "TidyStats A Introduction"
+author: "David Jackson"
+date: "3/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(tidyr)
+library(tidystats)
+```
+
+## R Markdown
+
+```{r}
+rm(list=ls())
+sleep_test <- t.test(extra ~ group, data = sleep, paired = TRUE)
+summary(sleep_test)
+```
+
+```{r}
+ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
+trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
+group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
+weight <- c(ctl, trt)
+lm_D9 <- lm(weight ~ group)
+summary(lm_D9)
+```
+```{r}
+npk_aov <- aov(yield ~ block + N*P*K, npk)
+summary(npk_aov)
+```
+
+### Tidy the statistics and store each analysis in a separate variable
+
+```{r}
+
+list_sleep_test <- tidy_stats(sleep_test)
+list_lm_D9 <- tidy_stats(lm_D9)
+list_npk_aov <- tidy_stats(npk_aov)
+summary(list_npk_aov)
+```
+
+###  Now you can inspect each of these variables, e.g.,:
+
+```{r}
+names(list_sleep_test)
+str(list_sleep_test)
+```
+
+### Introduction to tidystats
+
+```{r}
+## ---- include = FALSE---------------------------------------------------------
+
+
+library(knitr)
+opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+options(digits = 3)
+
+## ----setup, message = FALSE---------------------------------------------------
+
+# Load data
+data <- tidystats::quote_source
+
+## ----descriptives, eval = FALSE-----------------------------------------------
+#  descriptives <- data %>%
+#    group_by(source) %>%
+#    describe_data(response, short = TRUE)
+#  descriptives
+
+## ----descriptives-real, echo = FALSE------------------------------------------
+data %>%
+  group_by(source) %>%
+  describe_data(response, short = TRUE) %>%
+  kable()
+
+## ----t-test-------------------------------------------------------------------
+t_test <- t.test(response ~ source, data = data)
+t_test
+
+## ----regression1--------------------------------------------------------------
+lm_us_or_not <- lm(response ~ source * us_or_international, data = data)
+summary(lm_us_or_not)
+
+## ----regression2--------------------------------------------------------------
+lm_age <- lm(response ~ source * age, data = data)
+summary(lm_age)
+
+## ----tidystats-example--------------------------------------------------------
+# Create an empty list to store the analyses in
+results <- list()
+
+# Add the analyses
+results <- results %>%
+  add_stats(t_test, preregistered = TRUE, type = "primary", 
+    notes = "A t-test comparing the effect of source on the quote rating.") %>%
+  add_stats(lm_us_or_not, preregistered = FALSE, type = "exploratory", 
+    notes = "Interaction effect with being from the U.S. or not.") %>%
+  add_stats(lm_age)
+
+## ----saving, eval = FALSE-----------------------------------------------------
+#  write_stats(results, "lorge-curtiss-1936-replication.json")
+
+```
+```{r}
+
+## ---- include = FALSE---------------------------------------------------------
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+## ----example1_eval, eval = FALSE, message = FALSE-----------------------------
+#  # Load packages
+#  library(tidystats)
+#  library(dplyr)
+#  
+#  # Read in a tidystats-produced .json file
+#  results <- read_stats("results.json")
+#  
+#  # Convert the list to a data frame
+#  results_df <- tidy_stats_to_data_frame(results)
+#  
+#  # Select the p-values
+#  p_values <- filter(results_df, statistic == "p")
+
+## ----example1_no_eval, message = FALSE, echo = FALSE--------------------------
+library(tidystats)
+library(dplyr)
+library(knitr)
+
+results <-read_stats(system.file("results.json", package = "tidystats"))
+results_df <- tidy_stats_to_data_frame(results)
+
+p_values <- filter(results_df, statistic == "p")
+
+options(knitr.kable.NA = '')
+
+p_values %>%
+  select(-extra) %>%
+  kable(format = "markdown")
+
+## ----example2_no_eval, eval = FALSE-------------------------------------------
+#  sig_p_values <- filter(results_df, statistic == "p" & value < .05)
+
+## ----example2_eval, echo = FALSE----------------------------------------------
+sig_p_values <- filter(results_df, statistic == "p" & value < .05)
+
+sig_p_values %>%
+  select(-extra) %>%
+  kable(format = "markdown")
+
+```
+```{r}
+# Conduct statistical tests
+# t-test:
+sleep_test <- t.test(extra ~ group, data = sleep, paired = TRUE)
+
+# lm:
+ctl <- c(4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14)
+trt <- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
+group <- gl(2, 10, 20, labels = c("Ctl", "Trt"))
+weight <- c(ctl, trt)
+lm_D9 <- lm(weight ~ group)
+
+# ANOVA:
+npk_aov <- aov(yield ~ block + N*P*K, npk)
+
+# Tidy the statistics and store each analysis in a separate variable
+list_sleep_test <- tidy_stats(sleep_test)
+list_lm_D9 <- tidy_stats(lm_D9)
+list_npk_aov <- tidy_stats(npk_aov)
+
+# Now you can inspect each of these variables, e.g.,:
+names(list_sleep_test)
+str(list_sleep_test)
+```
+
