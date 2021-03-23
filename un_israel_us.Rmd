@@ -1,0 +1,79 @@
+---
+title: "UN and Israel"
+author: "David Jackson"
+date: "3/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(tidyr)
+library(dlookr)
+library(unvotes)
+library(forecast)
+library(lubridate)
+```
+
+## Peak at Two UN Votes data.frames
+
+```{r}
+rm(list=ls())
+un_issues <- unvotes::un_roll_call_issues
+un_calls <- unvotes::un_roll_calls
+un_votes <-  unvotes::un_votes
+
+```
+
+### Plot of Issues Count
+
+```{r}
+un_issues %>% group_by(issue) %>% summarise(Count = n()) %>%
+  ggplot() + geom_col(aes(x=Count,y=issue)) +
+  labs(title="Count of UN Resolutions by Issue",y="Resolutions") 
+
+```
+```{r}
+un_issues %>% group_by(issue) %>% summarise(Count = n()) %>%
+  ggplot() + geom_col(aes(x=Count/sum(Count),y=issue)) +
+  labs(title="Percentage of UN Resolutions by Issue",y="Resolutions",x="Percnetage") +
+  scale_x_continuous(labels = percent)
+```
+
+### Pull out Israel/Palestinian conflict
+
+```{r}
+israel_calls <- un_issues %>% filter(short_name == "me") %>%
+  inner_join(un_calls,by = "rcid")
+
+israel_votes <- un_issues %>% filter(short_name == "me") %>%
+  inner_join(un_votes,by = "rcid")
+```
+
+###  Plot of Israel/Palestinian Resolutions by Year
+
+```{r}
+israel_calls$Year <- lubridate::year(israel_calls$date)
+```
+```{r}
+israel_year <- israel_calls %>% group_by(Year) %>%
+  summarise(Count = n())
+  ggplot(israel_year) + geom_line(aes(x=Year,y=Count)) +
+    labs(title="Count of Israel/Palestinian Resolutions by Year")
+```
+
+### Israel/Palestinian Count by Yes/No Votes for US
+
+```{r}
+israel_votes %>% filter(country =="United States") %>%
+  group_by(vote) %>% summarise(Count = n()) %>%
+  ggplot() + geom_col(aes(x=vote,y=Count)) +
+  coord_flip() +
+  labs(title= "United States Count of Yes/No Votes")
+```
+
+
+
+
