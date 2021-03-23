@@ -2,11 +2,14 @@
 title: "UN and Israel"
 author: "David Jackson"
 date: "3/22/2021"
-output: html_document
+output: 
+  html_document: 
+    fig_width: 9
+    fig_height: 7
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,error=FALSE,message = FALSE)
 library(ggplot2)
 library(scales)
 library(dplyr)
@@ -73,6 +76,23 @@ israel_votes %>% filter(country =="United States") %>%
   coord_flip() +
   labs(title= "United States Count of Yes/No Votes")
 ```
+
+### Count of Yes/No Votes by Year
+
+```{r}
+israel_yesno <- israel_calls %>% select(rcid,Year) %>%
+  inner_join(israel_votes,by = "rcid") %>%
+  group_by(vote,Year) %>% summarise(Count = n())
+```
+```{r}
+israel_yesno <- as.data.frame(israel_yesno)
+ggplot(israel_yesno) + geom_line(aes(x=Year,y=Count,col=vote)) +
+  scale_y_continuous(labels = comma) +
+  labs(title="Count of UN Resolution by Vote Cast And Year",y="Count of Votes Cast")
+```
+
+
+
 
 
 
